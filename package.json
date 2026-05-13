@@ -1,0 +1,51 @@
+{
+  "name": "@christianmorup/mddocs",
+  "version": "0.1.0",
+  "description": "Browse a markdown docs folder via docsify without touching the source repo.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Christian Mørup <cmo@immeo.dk>",
+  "homepage": "https://github.com/ChristianMorup/mddocs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChristianMorup/mddocs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ChristianMorup/mddocs/issues"
+  },
+  "keywords": [
+    "docsify",
+    "docs",
+    "markdown",
+    "cli",
+    "documentation"
+  ],
+  "bin": {
+    "mddocs": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "vitest run",
+    "prepare": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
