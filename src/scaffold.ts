@@ -91,11 +91,11 @@ export function buildIndexHtml(cfg: { homepage: string; sidebar: string; searchN
       startOnLoad: false,
       securityLevel: 'strict',
       theme: 'base',
-      // Immeo brand palette — sourced from immeo-theme.css in the SPA.
-      // Light Nordic mode: dark green ink on beige-light surface, soft green
-      // node fills, blue for accents, yellow/bordeaux reserved for notes/errors.
+      // mddocs theme — light Nordic palette: dark green ink on beige-light
+      // surface, soft green node fills, blue for accents, yellow/bordeaux
+      // reserved for notes/errors.
       themeVariables: {
-        fontFamily: '"Inter", "Immeo Sans", Arial, system-ui, sans-serif',
+        fontFamily: '"Inter", Arial, system-ui, sans-serif',
         background: '#F5F0F0',
 
         // Flowchart / class / state nodes
