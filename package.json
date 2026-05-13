@@ -20,9 +20,7 @@
     "cli",
     "documentation"
   ],
-  "bin": {
-    "mddocs": "./dist/index.js"
-  },
+  "bin": "./dist/index.js",
   "files": [
     "dist"
   ],
@@ -33,8 +31,7 @@
     "prepare": "npm run build"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "engines": {
     "node": ">=18.17"
