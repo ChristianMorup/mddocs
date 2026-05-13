@@ -4,8 +4,8 @@ import { workspaceKey, workspaceDir } from '../src/paths.js';
 
 describe('paths', () => {
   it('workspaceKey is deterministic for the same path', () => {
-    const a = workspaceKey('C:\\src\\Immeo\\Immeo.Catalyst\\docs');
-    const b = workspaceKey('C:\\src\\Immeo\\Immeo.Catalyst\\docs');
+    const a = workspaceKey('/some/project/docs');
+    const b = workspaceKey('/some/project/docs');
     expect(a).toBe(b);
     expect(a).toMatch(/^[a-f0-9]{12}$/);
   });

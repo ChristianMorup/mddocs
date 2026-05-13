@@ -130,8 +130,9 @@ describe('generateSidebar', () => {
 
 describe('generateHomepage', () => {
   it('mentions the docs folder and the parent (repo) folder name', () => {
-    const home = generateHomepage('C:\\src\\Immeo\\Immeo.Catalyst\\docs');
-    expect(home).toContain('Immeo.Catalyst/docs');
+    const docsPath = path.join('my-project', 'docs');
+    const home = generateHomepage(docsPath);
+    expect(home).toContain('my-project/docs');
     expect(home).toContain('# docs');
   });
 
