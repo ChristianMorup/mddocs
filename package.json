@@ -1,6 +1,6 @@
 {
   "name": "@christianmorup/mddocs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browse a markdown docs folder via docsify without touching the source repo.",
   "type": "module",
   "license": "MIT",
