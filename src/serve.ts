@@ -18,7 +18,12 @@ const PORT_RANGE_START = 3000;
 const PORT_RANGE_END = 3010;
 const READY_TIMEOUT_MS = 8000;
 
-export async function serve(docsPath: string, workspace: string): Promise<void> {
+export interface ServeOptions {
+  /** Filename inside docsPath to navigate to on open. */
+  focus?: string;
+}
+
+export async function serve(docsPath: string, workspace: string, options: ServeOptions = {}): Promise<void> {
   const existing = await readState();
   if (existing && isAlive(existing.pid)) {
     const validation = await validateManagedServer(existing, 500);
@@ -83,7 +88,8 @@ export async function serve(docsPath: string, workspace: string): Promise<void> 
 
   await writeState(state);
 
-  const url = serverUrl(port);
+  const baseUrl = serverUrl(port);
+  const url = options.focus ? `${baseUrl}#/docs/${encodeFocus(options.focus)}` : baseUrl;
   await open(url).catch(() => {
     // browser failed to open — not fatal, user has the URL
   });
@@ -91,6 +97,12 @@ export async function serve(docsPath: string, workspace: string): Promise<void> 
   console.log(`Serving ${docsPath}`);
   console.log(`  → ${url}`);
   console.log(`Run 'mddocs stop' to halt.`);
+}
+
+function encodeFocus(focus: string): string {
+  // Match the sidebar's encoding (tree.ts): encodeURIComponent + explicit
+  // paren escaping, so filenames with parens, spaces, etc. route correctly.
+  return encodeURIComponent(focus).replace(/\(/g, '%28').replace(/\)/g, '%29');
 }
 
 function findFreePort(start: number, end: number): Promise<number> {
