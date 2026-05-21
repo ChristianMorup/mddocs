@@ -4,8 +4,10 @@ import { discover } from './discover.js';
 import { scaffold } from './scaffold.js';
 import { serve } from './serve.js';
 import { installSkill, skillFile, uninstallSkill } from './skill.js';
+import type { SkillScope } from './skill.js';
 import { status } from './status.js';
 import { stop } from './stop.js';
+import { DEFAULT_MAX_DEPTH } from './tree.js';
 
 async function main(): Promise<void> {
   const program = new Command();
@@ -20,7 +22,7 @@ async function main(): Promise<void> {
     .option(
       '--depth <n>',
       'max directory depth to walk for the sidebar (0 = root-only)',
-      '5'
+      String(DEFAULT_MAX_DEPTH)
     )
     .action(async (pathArg: string | undefined, opts: { depth: string }) => {
       const maxDepth = parseDepth(opts.depth);
@@ -53,7 +55,7 @@ async function main(): Promise<void> {
     .option('--local', 'install into the current repo only (./.claude/skills) instead of the user-scoped ~/.claude/skills')
     .option('--force', 'overwrite an existing modified skill file')
     .action(async (opts: { force?: boolean; local?: boolean }) => {
-      const scope = opts.local ? 'local' : 'user';
+      const scope = scopeOf(opts);
       const result = await installSkill({ force: opts.force, scope });
       const file = skillFile({ scope });
       switch (result) {
@@ -68,7 +70,7 @@ async function main(): Promise<void> {
           break;
         case 'conflict':
           console.error(`A different skill file already exists at ${file}.`);
-          console.error(`Run 'mddocs skill install${opts.local ? ' --local' : ''} --force' to overwrite.`);
+          console.error(`Run 'mddocs skill install${localFlag(scope)} --force' to overwrite.`);
           process.exit(1);
       }
     });
@@ -79,7 +81,7 @@ async function main(): Promise<void> {
     .option('--local', 'remove from the current repo (./.claude/skills) instead of the user-scoped ~/.claude/skills')
     .option('--force', 'remove even if the skill file has been modified')
     .action(async (opts: { force?: boolean; local?: boolean }) => {
-      const scope = opts.local ? 'local' : 'user';
+      const scope = scopeOf(opts);
       const result = await uninstallSkill({ force: opts.force, scope });
       const file = skillFile({ scope });
       switch (result) {
@@ -91,12 +93,20 @@ async function main(): Promise<void> {
           break;
         case 'modified':
           console.error(`Skill file at ${file} has been modified.`);
-          console.error(`Run 'mddocs skill uninstall${opts.local ? ' --local' : ''} --force' to remove anyway.`);
+          console.error(`Run 'mddocs skill uninstall${localFlag(scope)} --force' to remove anyway.`);
           process.exit(1);
       }
     });
 
   await program.parseAsync(process.argv);
+}
+
+function scopeOf(opts: { local?: boolean }): SkillScope {
+  return opts.local ? 'local' : 'user';
+}
+
+function localFlag(scope: SkillScope): string {
+  return scope === 'local' ? ' --local' : '';
 }
 
 function parseDepth(raw: string): number {

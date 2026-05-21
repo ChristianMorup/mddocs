@@ -1,21 +1,36 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+/** Default sidebar walk depth. Used by the CLI and by generateSidebar. */
+export const DEFAULT_MAX_DEPTH = 5;
+
 const SKIP_DIRS = new Set([
   'node_modules',
   'dist',
   'bin',
   'obj',
+  'out',
+  'build',
+  'target',
+  'coverage',
+  '.next',
+  '.turbo',
+  '.cache',
+  '__pycache__',
+  '.venv',
+  'venv',
   '.git',
   '.idea',
   '.vscode',
+  '.vs',
+  '.gradle',
   'TestResults',
 ]);
 
 const SKIP_FILES = new Set(['_sidebar.md', '_navbar.md', '_coverpage.md']);
 
 export interface SidebarOptions {
-  /** Max directory nesting depth to walk. 0 means root-level files only. Default 5. */
+  /** Max directory nesting depth to walk. 0 means root-level files only. */
   maxDepth?: number;
 }
 
@@ -40,7 +55,7 @@ export async function generateSidebar(
   urlRoot: string = 'docs',
   opts: SidebarOptions = {}
 ): Promise<string> {
-  const maxDepth = opts.maxDepth ?? 5;
+  const maxDepth = opts.maxDepth ?? DEFAULT_MAX_DEPTH;
   const lines: string[] = [];
   await walk(docsPath, [urlRoot], 0, maxDepth, lines, new Set());
   if (lines.length === 0) {
@@ -53,7 +68,7 @@ function toUrl(parts: string[]): string {
   return '/' + parts.map(encodeSegment).join('/');
 }
 
-function encodeSegment(s: string): string {
+export function encodeSegment(s: string): string {
   // encodeURIComponent leaves () alone — fine for HTTP, but markdown's
   // link-destination grammar terminates at the first unbalanced ')'. Encode
   // parens explicitly so filenames like `(template).md` survive the markdown
@@ -90,8 +105,6 @@ async function walk(
     return;
   }
 
-  // Directories first (alpha), then files (alpha). README.md at depth 0 is treated
-  // as the homepage and not emitted into the sidebar tree.
   entries.sort((a, b) => {
     if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
     return a.name.localeCompare(b.name);
@@ -105,10 +118,9 @@ async function walk(
       if (SKIP_DIRS.has(e.name)) continue;
       if (depth >= maxDepth) continue;
       const subdir = path.join(dir, e.name);
-      if (!(await hasMarkdown(subdir))) continue;
+      if (!(await hasMarkdown(subdir, depth + 1, maxDepth))) continue;
       const subParts = [...urlParts, e.name];
       const niceName = humanize(e.name);
-      // If the folder has a README.md, link the folder header to it.
       const readme = path.join(subdir, 'README.md');
       if (await pathExists(readme)) {
         lines.push(`${indent}- [${niceName}](${toUrl([...subParts, 'README.md'])})`);
@@ -126,7 +138,12 @@ async function walk(
   }
 }
 
-async function hasMarkdown(dir: string, seen: Set<string> = new Set()): Promise<boolean> {
+async function hasMarkdown(
+  dir: string,
+  depth: number,
+  maxDepth: number,
+  seen: Set<string> = new Set()
+): Promise<boolean> {
   const realDir = await realPathOrSelf(dir);
   if (seen.has(realDir)) return false;
   seen.add(realDir);
@@ -138,12 +155,14 @@ async function hasMarkdown(dir: string, seen: Set<string> = new Set()): Promise<
     return false;
   }
   for (const e of entries) {
-    if (e.isFile() && e.name.toLowerCase().endsWith('.md')) return true;
+    if (e.name.startsWith('.')) continue;
+    if (e.isFile() && e.name.toLowerCase().endsWith('.md') && !SKIP_FILES.has(e.name)) return true;
   }
+  if (depth >= maxDepth) return false;
   for (const e of entries) {
     if (!e.isDirectory()) continue;
     if (e.name.startsWith('.') || SKIP_DIRS.has(e.name)) continue;
-    if (await hasMarkdown(path.join(dir, e.name), seen)) return true;
+    if (await hasMarkdown(path.join(dir, e.name), depth + 1, maxDepth, seen)) return true;
   }
   return false;
 }

@@ -35,7 +35,7 @@ mddocs stop             # halt the server
 
 Pointing at a `.md` file serves its containing directory (so the sidebar shows whatever else is next to it) and navigates straight to that file. Useful for reviewing a plan in a real renderer while you wait.
 
-By default `mddocs` walks `.md` files up to 5 directory levels deep, skipping `node_modules`, `dist`, `bin`, `obj`, `.git`, and similar build/VCS folders. Use `--depth N` to widen or narrow the walk (`--depth 0` shows only the root-level files).
+By default `mddocs` walks `.md` files up to 5 directory levels deep, skipping common build, VCS, and dependency folders (`node_modules`, `dist`, `build`, `target`, `.git`, etc.). Use `--depth N` to widen or narrow the walk (`--depth 0` shows only the root-level files).
 
 ## Claude Code integration (optional)
 

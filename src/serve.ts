@@ -13,6 +13,7 @@ import {
   validateManagedServer,
   writeServerMarker,
 } from './runtime.js';
+import { encodeSegment } from './tree.js';
 
 const PORT_RANGE_START = 3000;
 const PORT_RANGE_END = 3010;
@@ -89,7 +90,7 @@ export async function serve(docsPath: string, workspace: string, options: ServeO
   await writeState(state);
 
   const baseUrl = serverUrl(port);
-  const url = options.focus ? `${baseUrl}#/docs/${encodeFocus(options.focus)}` : baseUrl;
+  const url = options.focus ? `${baseUrl}#/docs/${encodeSegment(options.focus)}` : baseUrl;
   await open(url).catch(() => {
     // browser failed to open — not fatal, user has the URL
   });
@@ -97,12 +98,6 @@ export async function serve(docsPath: string, workspace: string, options: ServeO
   console.log(`Serving ${docsPath}`);
   console.log(`  → ${url}`);
   console.log(`Run 'mddocs stop' to halt.`);
-}
-
-function encodeFocus(focus: string): string {
-  // Match the sidebar's encoding (tree.ts): encodeURIComponent + explicit
-  // paren escaping, so filenames with parens, spaces, etc. route correctly.
-  return encodeURIComponent(focus).replace(/\(/g, '%28').replace(/\)/g, '%29');
 }
 
 function findFreePort(start: number, end: number): Promise<number> {
