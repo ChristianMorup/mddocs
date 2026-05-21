@@ -25,11 +25,31 @@ The installed binary is just `mddocs` — the scope only matters at install time
 ## Usage
 
 ```bash
-mddocs                  # auto-discover ./docs (or ./doc, ./documentation, ./docs*)
+mddocs                  # serve the current directory (sidebar walks up to 5 levels deep)
 mddocs ./guides         # serve a specific folder
+mddocs ./plans/PLAN.md  # serve the parent folder and open the browser on this file
+mddocs --depth 2        # cap the sidebar walk at 2 nested levels (0 = root-only)
 mddocs status           # show what's running
 mddocs stop             # halt the server
 ```
+
+Pointing at a `.md` file serves its containing directory (so the sidebar shows whatever else is next to it) and navigates straight to that file. Useful for reviewing a plan in a real renderer while you wait.
+
+By default `mddocs` walks `.md` files up to 5 directory levels deep, skipping `node_modules`, `dist`, `bin`, `obj`, `.git`, and similar build/VCS folders. Use `--depth N` to widen or narrow the walk (`--depth 0` shows only the root-level files).
+
+## Claude Code integration (optional)
+
+If you use Claude Code, mddocs can install a small skill that nudges agents to offer `mddocs <plan-path>` whenever they write a plan or design doc to disk:
+
+```bash
+mddocs skill install             # writes ~/.claude/skills/mddocs-plan-review/SKILL.md (all repos)
+mddocs skill install --local     # writes ./.claude/skills/mddocs-plan-review/SKILL.md (this repo only)
+mddocs skill uninstall           # removes the user-scoped skill
+mddocs skill uninstall --local   # removes the repo-scoped skill
+```
+
+The skill never auto-launches anything — it just teaches the agent to ask first. Add `--force` to either command to overwrite or remove a hand-edited skill file. `--local` and the default user scope are independent — you can install one without affecting the other.
+
 
 The first form starts a detached docsify server, opens your default browser, and exits. The server keeps running until `mddocs stop` (or until you reboot).
 
