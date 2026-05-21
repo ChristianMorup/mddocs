@@ -1,80 +1,39 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-const CANDIDATE_NAMES = ['docs', 'doc', 'documentation'];
-
-export async function discover(arg: string | undefined, cwd: string = process.cwd()): Promise<string> {
-  if (arg) {
-    const resolved = path.resolve(cwd, arg);
-    if (!(await isDirectory(resolved))) {
-      throw new Error(`Path is not a directory: ${resolved}`);
-    }
-    if (!(await hasMarkdown(resolved))) {
-      throw new Error(`No markdown files found under ${resolved}`);
-    }
-    return resolved;
-  }
-
-  for (const name of CANDIDATE_NAMES) {
-    const p = path.join(cwd, name);
-    if ((await isDirectory(p)) && (await hasMarkdown(p))) {
-      return p;
-    }
-  }
-
-  // Fallback: any top-level entry whose name starts with "docs"
-  let entries: { name: string; isDirectory: () => boolean }[];
-  try {
-    entries = await fs.readdir(cwd, { withFileTypes: true });
-  } catch {
-    entries = [];
-  }
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    if (CANDIDATE_NAMES.includes(entry.name)) continue;
-    if (!entry.name.toLowerCase().startsWith('docs')) continue;
-    const p = path.join(cwd, entry.name);
-    if (await hasMarkdown(p)) return p;
-  }
-
-  throw new Error(`No docs folder found in ${cwd}. Pass a path explicitly: 'mddocs <folder>'.`);
+export interface DiscoverResult {
+  /** Directory that should be junctioned in as the served docs root. */
+  docsPath: string;
+  /** Filename (relative to docsPath) the browser should open on, if any. */
+  focus?: string;
 }
 
-async function isDirectory(p: string): Promise<boolean> {
-  try {
-    const stat = await fs.stat(p);
-    return stat.isDirectory();
-  } catch {
-    return false;
+export async function discover(arg: string | undefined, cwd: string = process.cwd()): Promise<DiscoverResult> {
+  if (!arg) {
+    return { docsPath: path.resolve(cwd) };
   }
+
+  const resolved = path.resolve(cwd, arg);
+  const stat = await statOrNull(resolved);
+  if (!stat) {
+    throw new Error(`Path not found: ${resolved}`);
+  }
+  if (stat.isFile()) {
+    if (!resolved.toLowerCase().endsWith('.md')) {
+      throw new Error(`Not a markdown file: ${resolved}`);
+    }
+    return { docsPath: path.dirname(resolved), focus: path.basename(resolved) };
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`Path is not a file or directory: ${resolved}`);
+  }
+  return { docsPath: resolved };
 }
 
-async function hasMarkdown(dir: string, seen: Set<string> = new Set()): Promise<boolean> {
-  const realDir = await realPathOrSelf(dir);
-  if (seen.has(realDir)) return false;
-  seen.add(realDir);
-
-  let entries: { name: string; isFile: () => boolean; isDirectory: () => boolean }[];
+async function statOrNull(p: string): Promise<import('node:fs').Stats | null> {
   try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
+    return await fs.stat(p);
   } catch {
-    return false;
-  }
-  for (const e of entries) {
-    if (e.isFile() && e.name.toLowerCase().endsWith('.md')) return true;
-  }
-  for (const e of entries) {
-    if (!e.isDirectory()) continue;
-    if (e.name.startsWith('.') || e.name === 'node_modules') continue;
-    if (await hasMarkdown(path.join(dir, e.name), seen)) return true;
-  }
-  return false;
-}
-
-async function realPathOrSelf(p: string): Promise<string> {
-  try {
-    return await fs.realpath(p);
-  } catch {
-    return p;
+    return null;
   }
 }

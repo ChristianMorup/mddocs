@@ -15,73 +15,60 @@ afterEach(async () => {
 });
 
 describe('discover', () => {
-  it('finds ./docs when present with markdown', async () => {
-    const docs = path.join(tmpRoot, 'docs');
-    await fs.mkdir(docs);
-    await fs.writeFile(path.join(docs, 'readme.md'), '# hi');
+  it('returns cwd when no arg is given and cwd has markdown', async () => {
+    await fs.writeFile(path.join(tmpRoot, 'README.md'), '# hi');
     const found = await discover(undefined, tmpRoot);
-    expect(path.resolve(found)).toBe(path.resolve(docs));
+    expect(path.resolve(found.docsPath)).toBe(path.resolve(tmpRoot));
+    expect(found.focus).toBeUndefined();
   });
 
-  it('prefers ./docs over ./documentation', async () => {
+  it('returns cwd when no arg is given and cwd is empty', async () => {
+    const found = await discover(undefined, tmpRoot);
+    expect(path.resolve(found.docsPath)).toBe(path.resolve(tmpRoot));
+    expect(found.focus).toBeUndefined();
+  });
+
+  it('does not treat a ./docs subfolder as the served root anymore', async () => {
     const docs = path.join(tmpRoot, 'docs');
-    const documentation = path.join(tmpRoot, 'documentation');
     await fs.mkdir(docs);
-    await fs.mkdir(documentation);
     await fs.writeFile(path.join(docs, 'a.md'), '#');
-    await fs.writeFile(path.join(documentation, 'b.md'), '#');
     const found = await discover(undefined, tmpRoot);
-    expect(path.resolve(found)).toBe(path.resolve(docs));
+    expect(path.resolve(found.docsPath)).toBe(path.resolve(tmpRoot));
   });
 
-  it('falls back to docs* directories', async () => {
-    const docsInternal = path.join(tmpRoot, 'docs-internal');
-    await fs.mkdir(docsInternal);
-    await fs.writeFile(path.join(docsInternal, 'x.md'), '#');
-    const found = await discover(undefined, tmpRoot);
-    expect(path.resolve(found)).toBe(path.resolve(docsInternal));
-  });
-
-  it('finds markdown nested one level deep', async () => {
-    const docs = path.join(tmpRoot, 'docs');
-    await fs.mkdir(path.join(docs, 'sub'), { recursive: true });
-    await fs.writeFile(path.join(docs, 'sub', 'a.md'), '#');
-    const found = await discover(undefined, tmpRoot);
-    expect(path.resolve(found)).toBe(path.resolve(docs));
-  });
-
-  it('finds markdown nested several levels deep', async () => {
-    const docs = path.join(tmpRoot, 'docs');
-    await fs.mkdir(path.join(docs, 'a', 'b', 'c'), { recursive: true });
-    await fs.writeFile(path.join(docs, 'a', 'b', 'c', 'deep.md'), '#');
-    const found = await discover(undefined, tmpRoot);
-    expect(path.resolve(found)).toBe(path.resolve(docs));
-  });
-
-  it('throws when no docs folder exists', async () => {
-    await expect(discover(undefined, tmpRoot)).rejects.toThrow(/No docs folder found/);
-  });
-
-  it('uses explicit arg when provided', async () => {
+  it('uses explicit dir arg when provided', async () => {
     const custom = path.join(tmpRoot, 'guides');
     await fs.mkdir(custom);
     await fs.writeFile(path.join(custom, 'a.md'), '#');
     const found = await discover('guides', tmpRoot);
-    expect(path.resolve(found)).toBe(path.resolve(custom));
+    expect(path.resolve(found.docsPath)).toBe(path.resolve(custom));
+    expect(found.focus).toBeUndefined();
   });
 
-  it('rejects explicit arg pointing at non-directory', async () => {
-    await expect(discover('nope', tmpRoot)).rejects.toThrow(/not a directory/i);
-  });
-
-  it('rejects explicit arg with no markdown', async () => {
+  it('accepts an explicit empty dir without throwing', async () => {
     const empty = path.join(tmpRoot, 'empty');
     await fs.mkdir(empty);
-    await expect(discover('empty', tmpRoot)).rejects.toThrow(/No markdown/);
+    const found = await discover('empty', tmpRoot);
+    expect(path.resolve(found.docsPath)).toBe(path.resolve(empty));
   });
 
-  it('rejects ./docs with no markdown (falls through to no-match)', async () => {
-    await fs.mkdir(path.join(tmpRoot, 'docs'));
-    await expect(discover(undefined, tmpRoot)).rejects.toThrow(/No docs folder/);
+  it('accepts a .md file arg and returns parent + focus', async () => {
+    const plansDir = path.join(tmpRoot, 'plans');
+    await fs.mkdir(plansDir);
+    const file = path.join(plansDir, 'PLAN.md');
+    await fs.writeFile(file, '# plan');
+    const found = await discover('plans/PLAN.md', tmpRoot);
+    expect(path.resolve(found.docsPath)).toBe(path.resolve(plansDir));
+    expect(found.focus).toBe('PLAN.md');
+  });
+
+  it('rejects a non-markdown file arg', async () => {
+    const file = path.join(tmpRoot, 'notes.txt');
+    await fs.writeFile(file, 'hi');
+    await expect(discover('notes.txt', tmpRoot)).rejects.toThrow(/markdown file/i);
+  });
+
+  it('rejects explicit arg that does not exist', async () => {
+    await expect(discover('nope', tmpRoot)).rejects.toThrow(/not found/i);
   });
 });
