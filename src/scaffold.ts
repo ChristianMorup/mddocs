@@ -14,7 +14,12 @@ export interface Scaffolded {
   hasUserReadme: boolean;
 }
 
-export async function scaffold(docsPath: string): Promise<Scaffolded> {
+export interface ScaffoldOptions {
+  /** Max directory nesting depth for the synthetic sidebar walk. Default 5. */
+  maxDepth?: number;
+}
+
+export async function scaffold(docsPath: string, opts: ScaffoldOptions = {}): Promise<Scaffolded> {
   const workspace = workspaceDir(docsPath);
   await fs.mkdir(workspace, { recursive: true });
 
@@ -31,7 +36,7 @@ export async function scaffold(docsPath: string): Promise<Scaffolded> {
   if (hasUserSidebar) {
     await removeIfExists(workspaceSidebar);
   } else {
-    const sidebarContent = await generateSidebar(docsPath, 'docs');
+    const sidebarContent = await generateSidebar(docsPath, 'docs', { maxDepth: opts.maxDepth });
     await fs.writeFile(workspaceSidebar, sidebarContent, 'utf8');
   }
 
