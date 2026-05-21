@@ -1,5 +1,8 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
+import updateNotifier from 'update-notifier';
 import { discover } from './discover.js';
 import { scaffold } from './scaffold.js';
 import { serve } from './serve.js';
@@ -9,13 +12,19 @@ import { status } from './status.js';
 import { stop } from './stop.js';
 import { DEFAULT_MAX_DEPTH } from './tree.js';
 
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')
+) as { name: string; version: string };
+
 async function main(): Promise<void> {
+  updateNotifier({ pkg }).notify();
+
   const program = new Command();
 
   program
     .name('mddocs')
     .description('Browse a markdown docs folder via docsify without touching the source repo.')
-    .version('0.1.0');
+    .version(pkg.version);
 
   program
     .argument('[path]', 'markdown file or folder to serve (default: current directory)')
