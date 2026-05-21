@@ -14,6 +14,11 @@ const SKIP_DIRS = new Set([
 
 const SKIP_FILES = new Set(['_sidebar.md', '_navbar.md', '_coverpage.md']);
 
+export interface SidebarOptions {
+  /** Max directory nesting depth to walk. 0 means root-level files only. Default 5. */
+  maxDepth?: number;
+}
+
 /**
  * Generate a docsify _sidebar.md from a real docs folder.
  *
@@ -30,9 +35,14 @@ const SKIP_FILES = new Set(['_sidebar.md', '_navbar.md', '_coverpage.md']);
  * Each path segment is URL-encoded so filenames with parens (e.g.
  * `(template).md`), spaces, or other special characters route correctly.
  */
-export async function generateSidebar(docsPath: string, urlRoot: string = 'docs'): Promise<string> {
+export async function generateSidebar(
+  docsPath: string,
+  urlRoot: string = 'docs',
+  opts: SidebarOptions = {}
+): Promise<string> {
+  const maxDepth = opts.maxDepth ?? 5;
   const lines: string[] = [];
-  await walk(docsPath, [urlRoot], 0, lines, new Set());
+  await walk(docsPath, [urlRoot], 0, maxDepth, lines, new Set());
   if (lines.length === 0) {
     return '- _(no markdown files found)_\n';
   }
@@ -65,6 +75,7 @@ async function walk(
   dir: string,
   urlParts: string[],
   depth: number,
+  maxDepth: number,
   lines: string[],
   seen: Set<string>
 ): Promise<void> {
@@ -92,6 +103,7 @@ async function walk(
     if (e.name.startsWith('.')) continue;
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
+      if (depth >= maxDepth) continue;
       const subdir = path.join(dir, e.name);
       if (!(await hasMarkdown(subdir))) continue;
       const subParts = [...urlParts, e.name];
@@ -103,7 +115,7 @@ async function walk(
       } else {
         lines.push(`${indent}- ${niceName}`);
       }
-      await walk(subdir, subParts, depth + 1, lines, seen);
+      await walk(subdir, subParts, depth + 1, maxDepth, lines, seen);
     } else if (e.isFile() && e.name.toLowerCase().endsWith('.md')) {
       if (SKIP_FILES.has(e.name)) continue;
       // README at the root is the homepage; README in a subfolder was already linked above.

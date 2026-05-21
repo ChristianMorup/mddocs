@@ -126,6 +126,35 @@ describe('generateSidebar', () => {
     const sidebar = await generateSidebar(root, 'docs');
     expect(sidebar).toMatch(/no markdown files found/i);
   });
+
+  it('respects an explicit maxDepth and excludes deeper files', async () => {
+    await write('top.md');
+    await write('a/level1.md');
+    await write('a/b/level2.md');
+    await write('a/b/c/level3.md');
+    const sidebar = await generateSidebar(root, 'docs', { maxDepth: 2 });
+    expect(sidebar).toContain('- [Top](/docs/top.md)');
+    expect(sidebar).toContain('  - [Level1](/docs/a/level1.md)');
+    expect(sidebar).toContain('    - [Level2](/docs/a/b/level2.md)');
+    expect(sidebar).not.toContain('level3');
+  });
+
+  it('with maxDepth 0 emits only root-level files', async () => {
+    await write('root.md');
+    await write('sub/inner.md');
+    const sidebar = await generateSidebar(root, 'docs', { maxDepth: 0 });
+    expect(sidebar).toContain('- [Root](/docs/root.md)');
+    expect(sidebar).not.toContain('Sub');
+    expect(sidebar).not.toContain('inner');
+  });
+
+  it('defaults to depth 5 when no option is passed', async () => {
+    await write('a/b/c/d/e/deep5.md');
+    await write('a/b/c/d/e/f/deep6.md');
+    const sidebar = await generateSidebar(root, 'docs');
+    expect(sidebar).toContain('deep5');
+    expect(sidebar).not.toContain('deep6');
+  });
 });
 
 describe('generateHomepage', () => {
